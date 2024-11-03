@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pencarian Dokumen</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+      body {
+        margin: 20px;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      h1 {
+        color: #333;
+      }
+      .suggestions {
+        border: 1px solid #ccc;
+        background-color: white;
+        position: absolute;
+        z-index: 1000;
+        width: 100%; /* Make it responsive */
+      }
+      .suggestion-item {
+        padding: 10px;
+        cursor: pointer;
+      }
+      .suggestion-item:hover {
+        background-color: #f0f0f0;
+      }
+
+      /* Set font size for the table and its cells */
+      table {
+        font-size: 12px; /* Set the font size for the entire table */
+      }
+    </style>
+    <script>
+      async function fetchSuggestions(query) {
+        console.log("Fetching suggestions for:", query); // Debugging
+        if (query.length < 2) {
+          document.getElementById("suggestions").innerHTML = "";
+          return;
+        }
+        try {
+          const response = await fetch(`/suggestions?q=${query}`);
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          const { suggestions } = await response.json();
+          displaySuggestions(suggestions);
+        } catch (error) {
+          console.error("Error fetching suggestions:", error);
+        }
+      }
+
+      function displaySuggestions(suggestions) {
+        const suggestionsContainer = document.getElementById("suggestions");
+        suggestionsContainer.innerHTML = suggestions
+          .map(
+            (suggestion) =>
+              `<div class="suggestion-item" onclick="selectSuggestion('${suggestion.nama_dokumen}')">${suggestion.nama_dokumen}</div>`
+          )
+          .join("");
+      }
+
+      function selectSuggestion(suggestion) {
+        document.querySelector('input[name="query"]').value = suggestion;
+        document.getElementById("suggestions").innerHTML = "";
+      }
+
+      function downloadPDF(documentName) {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+        pdf.text(20, 20, `Document: ${documentName}`);
+        pdf.save(`${documentName}.pdf`);
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Pencarian Dokumen</h1>
+      <form method="POST">
+        <div class="form-group" style="position: relative">
+          <input
+            type="text"
+            class="form-control"
+            name="query"
+            placeholder="Masukkan nama dokumen"
+            required
+            onkeyup="fetchSuggestions(this.value)"
+          />
+          <div id="suggestions" class="suggestions"></div>
+        </div>
+        <button type="submit" class="btn btn-primary">Cari</button>
+      </form>
+
+      <h2>Hasil Pencarian</h2>
+
+      {% if query %}
+      <!-- Pastikan 'query' ada dalam konteks -->
+      <p>Anda mencari: <strong>{{ query }}</strong></p>
+      <!-- Menampilkan nilai pencarian -->
+      {% endif %}
+
+      <h3>Saran Pencarian:</h3>
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>No Dokumen</th>
+                  <th>Nama Dokumen</th>
+                  <th>Revisi Ke</th>
+                  <th>Nama File Prod</th>
+                  <th>Nama File Dev</th>
+                  <th>Kategori Prosedur</th>
+                  <th>Kategori Dokumen</th>
+                  <th>Updated By</th>
+                  <th>Status</th>
+                  <th>Remark</th>
+                  <th>Approved By</th>
+                  <th>Created By</th>
+                  <th>Updated At</th>
+                  <th>Created At</th>
+                  <th>action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in suggestions %}
+                <tr>
+                  <td>{{ row['id'] }}</td>
+                  <td>{{ row['no_dokumen'] }}</td>
+                  <td>{{ row['nama_dokumen'] }}</td>
+                  <td>{{ row['revisi_ke'] }}</td>
+                  <td>{{ row['nama_file_prod'] }}</td>
+                  <td>{{ row['nama_file_dev'] }}</td>
+                  <td>{{ row['kategori_prosedur'] }}</td>
+                  <td>{{ row['kategori_dokumen'] }}</td>
+                  <td>{{ row['updated_by'] }}</td>
+                  <td>{{ row['status'] }}</td>
+                  <td>{{ row['remark'] }}</td>
+                  <td>{{ row['approved_by'] }}</td>
+                  <td>{{ row['created_by'] }}</td>
+                  <td>{{ row['update_at'] }}</td>
+                  <td>{{ row['create_at'] }}</td>
+                  <td>
+                    <button
+                      class="btn btn-sm btn-primary"
+                      onclick="downloadPDF('{{ row['nama_dokumen'] }}')"
+                    >
+                      Download PDF
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %} {% for match, score in fuzzy_matches %}
+                <tr>
+                  <td>{{ match['id'] }}</td>
+                  <td>{{ match['no_dokumen'] }}</td>
+                  <td>{{ match['nama_dokumen'] }}</td>
+                  <td>{{ match['revisi_ke'] }}</td>
+                  <td>{{ match['nama_file_prod'] }}</td>
+                  <td>{{ match['nama_file_dev'] }}</td>
+                  <td>{{ match['kategori_prosedur'] }}</td>
+                  <td>{{ match['kategori_dokumen'] }}</td>
+                  <td>{{ match['updated_by'] }}</td>
+                  <td>{{ match['status'] }}</td>
+                  <td>{{ match['remark'] }}</td>
+                  <td>{{ match['approved_by'] }}</td>
+                  <td>{{ match['created_by'] }}</td>
+                  <td>{{ match['updated_at'] }}</td>
+                  <td>{{ match['created_at'] }}</td>
+                  <td>
+                    <button
+                      class="btn btn-sm btn-primary"
+                      onclick="downloadPDF('{{ match['nama_dokumen'] }}')"
+                    >
+                      Download PDF
+                    </button>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="16">Tidak ada hasil yang ditemukan.</td>
+                </tr>
+
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <h3>Fuzzy Matches:</h3>
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>No Dokumen</th>
+              <th>Nama Dokumen</th>
+              <th>Revisi Ke</th>
+              <th>Nama File Prod</th>
+              <th>Nama File Dev</th>
+              <th>Kategori Prosedur</th>
+              <th>Kategori Dokumen</th>
+              <th>Updated By</th>
+              <th>Status</th>
+              <th>Remark</th>
+              <th>Approved By</th>
+              <th>Created By</th>
+              <th>Updated At</th>
+              <th>Created At</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for match, score in fuzzy_matches %}
+            <tr>
+              <td>{{ match['id'] }}</td>
+              <td>{{ match['no_dokumen'] }}</td>
+              <td>{{ match['nama_dokumen'] }}</td>
+              <td>{{ match['revisi_ke'] }}</td>
+              <td>{{ match['nama_file_prod'] }}</td>
+              <td>{{ match['nama_file_dev'] }}</td>
+              <td>{{ match['kategori_prosedur'] }}</td>
+              <td>{{ match['kategori_dokumen'] }}</td>
+              <td>{{ match['updated_by'] }}</td>
+              <td>{{ match['status'] }}</td>
+              <td>{{ match['remark'] }}</td>
+              <td>{{ match['approved_by'] }}</td>
+              <td>{{ match['created_by'] }}</td>
+              <td>{{ match['updated_at'] }}</td>
+              <td>{{ match['created_at'] }}</td>
+              <td>
+                <button
+                  class="btn btn-sm btn-primary"
+                  onclick="downloadPDF('{{ match['nama_dokumen'] }}')"
+                >
+                  Download PDF
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Hasil Klustering:</h3>
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <tr>
+                <th>Dokumen</th>
+                <th>Kluster</th>
+                <th>Akurasi</th>
+              </tr>
+              {% for i in range(suggestions|length) %}
+              <tr>
+                <td>
+                  {{ suggestions[i]['nama_dokumen'] if i < suggestions|length
+                  else '' }}
+                </td>
+                <td>{{ clustered_results[i] }}</td>
+                <td>{{ accuracy | round(2) }}%</td>
+              </tr>
+              {% endfor %}
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

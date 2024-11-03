@@ -1,0 +1,9 @@
+Flask
+Flask-MySQLdb
+Flask-WTF
+pandas
+scikit-learn
+nltk
+fuzzywuzzy
+python-Levenshtein
+mysql-connector-python
